@@ -1,3 +1,19 @@
+#
+# Copyright (c) 2018 Pragmagic and/or its affiliates.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at:
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
 import strutils
 
 type
@@ -56,11 +72,7 @@ type
 
   UserFunc* = ptr UserFuncObj
   UserFuncObj = object
-    spec*: UserFuncSpec
     ctx*: Context
-
-  UserFuncSpec* = ptr UserFuncSpecObj
-  UserFuncSpecObj = object
     body*: Block
     spec: Block
   
@@ -229,7 +241,9 @@ proc `$`(obj: Obj): string =
 #
 ###
 
-const CellMemSize = 1024 * 1024
+const 
+  CellMemSize = 1024 * 1024
+  CellSize = sizeof(int) * 2
 
 proc alignWord(adr: int, align: int): int = (adr +% (align - 1)) and (not (align - 1))
 
@@ -240,15 +254,14 @@ proc init(allocator: var CellAllocator) =
 proc used(allocator: CellAllocator): int =
   allocator.last -% cast[int](allocator.mem)
   
-proc alloc(allocator: var CellAllocator, T: typedesc): ptr T =
-  assert sizeof(T) == (sizeof(int) * 2)
-  result = cast[ptr T](allocator.last)
-  inc allocator.last, sizeof(T)
+proc alloc(allocator: var CellAllocator): pointer =
+  result = cast[pointer](allocator.last)
+  inc allocator.last, CellSize
 
-proc alloc(vm: VM, T: typedesc): ptr T = alloc(vm.cellAllocator, T)
+template alloc(vm: VM, T: typedesc): ptr T = cast[ptr T](alloc(vm.cellAllocator))
 
 proc allocObj(vm: VM, typ: Type, val: int): Obj = 
-  result = alloc(vm.cellAllocator, ObjObj)
+  result = vm.alloc(ObjObj)
   result.typ = typ # addr vm.types[typ]
   result.val = val
 
@@ -289,12 +302,10 @@ proc createSignal*(vm: VM, val: Any): Any =
 ###
 
 proc createUserFunc*(vm: VM, ctx: Context, specBlock: Block, body: Block): Any =
-  let spec = vm.alloc(UserFuncSpecObj)
-  spec.spec = specBlock
-  spec.body = body
-  let uf = vm.alloc(UserFuncObj)
+  let uf = create(UserFuncObj)
+  uf.spec = specBlock
+  uf.body = body
   uf.ctx = ctx
-  uf.spec = spec
   result = vm.allocObj(tUserFunc, uf).toAny
 
 ###
@@ -729,7 +740,7 @@ proc tExecUser(vm: VM, o: Obj): Any {.noinline.} =
   for entry in ctx:
     vm.push entry.val
     entry.val = vm.exec
-  result = vm.execAll(uf.spec.body)
+  result = vm.execAll(uf.body)
   for entry in ctx:
     entry.val = vm.pop
 
@@ -738,7 +749,7 @@ proc tExecUserRefinement(vm: VM, o: Obj, rf: Symbol): Any {.noinline.} =
 
   let uf = cast[UserFunc](o.val)
   let ctx = uf.ctx
-  let spec = uf.spec.spec
+  let spec = uf.spec
 
   echo "ctx len: ", ctx.len, " spec len: ", spec.len 
 
@@ -775,7 +786,7 @@ proc tExecUserRefinement(vm: VM, o: Obj, rf: Symbol): Any {.noinline.} =
   #   vm.push entry.val
   #   entry.val = vm.exec
   
-  result = vm.execAll(uf.spec.body)
+  result = vm.execAll(uf.body)
 
   # restore entire context
   for entry in ctx:

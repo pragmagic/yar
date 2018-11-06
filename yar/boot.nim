@@ -97,7 +97,7 @@ proc nf_func(vm: VM): Any =
 #     discard vm.addWord(all, "default".Symbol, vm.createUserFunc(ctx, body))
 #     echo "creating multifunc: ", all.toAny
 #     result = all.toAny
-  
+
 proc nf_makeObject(vm: VM): Any = vm.createContext(vmcast[Block](vm.exec))
 
 proc nf_compose(vm: VM): Any =
@@ -133,7 +133,7 @@ proc nf_map(vm: VM): Any =
     vm.push ctx.val.val
     ctx.val.val = i
   
-    vm.add mapped, vm.execAll(uf.spec.body)
+    vm.add mapped, vm.execAll(uf.body)
 
     ctx.val.val = vm.pop
   
