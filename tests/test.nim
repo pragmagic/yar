@@ -12,13 +12,13 @@ vm.boot
 #vm.bootDOM
 
 #let test = "a: 42"
-let test = "print 42"
+#let test = "print 42"
 #let test = "hey: 24 print hey print add 5 hey print lt 2 3 print lt 3 2"
 #let test = "sum: 0 i: 0 while [lt i 100000] [sum: add sum i i: add i 1] print sum"
 #let test = "x: func [a b] [print a print b] x 1 2"
 #let test = "hey: add 300 500 print hey x: func [a] [print add a hey] z: x 200 x 10000"
 #let test = "print either gt 5 2 [111] [222]"
-#let test = "fibo: func [x] [either gt x 1 [add fibo sub x 1 fibo sub x 2] [1]] fibo 40"
+let test = "fibo: func [x] [either gt x 1 [add fibo sub x 1 fibo sub x 2] [1]] fibo 40"
 #let test = "print 42 o: make-object [a: add 8 8 b: 42 c: make-object [x: 1 y: 2]] print o"
 #let test = "z: does [print 42] z"
 #let test = "compose [add 3 4 5 6 sub 7 1 5]"
